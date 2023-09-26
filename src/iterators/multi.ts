@@ -1,4 +1,4 @@
-import { NDArray, array } from '..';
+import { NDArray } from '..';
 import { NDIter } from './single';
 
 // /**
@@ -222,37 +222,57 @@ import { NDIter } from './single';
 //   }
 // }
 
-
 export class NDMultiIter {
   iters;
 
-  [Symbol.iterator](){ return this }
+  [Symbol.iterator]() {
+    return this;
+  }
 
-  constructor(...args: (NDArray | any[])[]) {
-    const its = Array.from(args, arg=> new NDIter(arg))
-    const nd = Math.max(...its.map(it=>it.shape.length))
-
-    for (let i = 0; i<nd; ++i){
-      let uniqueValues = new Set()
-      for (const it of its)
-      {
-        if (it.shape[i] === 1)
-{         it.strides[i] = 0
-}        else {uniqueValues.add(it.shape[i])}
-      }
-      if (uniqueValues.size>1){
-        throw new Error("shape mismatch")
+  constructor(...args: (NDArray | ArrayLike<any>)[]) {
+    const its = Array.from(args, (arg) => new NDIter(arg));
+    const ndim = Math.max(...its.map((it) => it.shape.length));
+    for (const it of its) {
+      for (let i = it.shape.length; i < ndim; ++i) {
+        it.shape.unshift(1);
+        it.strides.unshift(0);
       }
     }
 
-    this.iters = Array.from(args, arg => new NDIter(arg))
+    for (let i = 0; i < ndim; ++i) {
+      let uniqueValues = new Set(its.map((it) => it.shape[i]));
+      if (uniqueValues.size > 1) uniqueValues.delete(1);
+      if (uniqueValues.size > 1) {
+        throw new Error('shape mismatch');
+      }
+      const n = [...uniqueValues].pop()!;
+      for (const it of its) {
+        if (it.shape[i] === 1) {
+          it.shape[i] = n;
+          it.strides[i] = 0;
+        }
+      }
+    }
+
+    this.iters = Array.from(args, (arg) => new NDIter(arg));
+  }
+
+  done() {
+    return this.iters.every((x) => x.done());
   }
 
   next() {
-    const results = Array.from(this.iters, it => it.next())
-    return {
-      done: results.every(x => x.done ?? false),
-      value: results.map(x => x.value ?? 0)
-    }
+    const results = Array.from(this.iters, (it) => it.next());
+    const done = results.every((x) => x.done ?? false);
+    if (done) {
+      return {
+        done: true as const,
+        value: undefined,
+      };
+    } else
+      return {
+        done: false as const,
+        value: results.map((x) => x.value!),
+      };
   }
 }

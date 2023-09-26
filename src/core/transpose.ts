@@ -30,13 +30,8 @@ export default function (this: NDArray): NDArray {
     return this;
   }
 
-  let tmp = this.shape[0];
-  this.shape[0] = this.shape[1];
-  this.shape[1] = tmp;
-
-  tmp = this.strides[0];
-  this.strides[0] = this.strides[1];
-  this.strides[1] = tmp;
+  this.shape.reverse();
+  this.strides.reverse();
 
   return this;
 }

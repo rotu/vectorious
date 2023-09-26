@@ -129,6 +129,7 @@ describe('(NDMultiIter) constructor', () => {
     let i = 0;
     do {
       const next = iter.next();
+      strictEqual(next.done, false);
       strictEqual(next.value[0], i);
       strictEqual(next.value[1], i++);
     } while (!iter.done());
@@ -148,7 +149,9 @@ describe('(NDMultiIter) constructor', () => {
     const iter = new NDMultiIter(x, y);
 
     do {
-      const [i, j] = iter.next().value;
+      const { done, value } = iter.next();
+      strictEqual(done, false);
+      const [i, j] = value;
       x.data[i] += y.data[j];
     } while (!iter.done());
 

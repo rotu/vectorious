@@ -227,64 +227,66 @@ function coordsToPos(coords: number[], strides: number[]) {
 }
 
 function indexToCoords(index: number, shape: number[]) {
-  let coords = Array(shape.length)
-  for (let i = 0; i < shape.length; ++i){
-    coords[i] = index % shape[i]
-    index = Math.floor(index/shape[i])
+  const coords = [];
+  for (const d of [...shape].reverse()) {
+    coords.unshift(index % d);
+    index = Math.floor(index / d);
   }
-  return coords
+  return coords;
 }
 
-function coordsToIndex(coords: number[], shape: number[]) {
-  let index = 0
-  for (let i = 0; i < shape.length; ++i){
-    index *= shape[i]
-    index += coords[i]
-  } 
-  return index
-}
+// function coordsToIndex(coords: number[], shape: number[]) {
+//   let index = 0
+//   for (let i = 0; i < shape.length; ++i){
+//     index *= shape[i]
+//     index += coords[i]
+//   }
+//   return index
+// }
 
-export class NDIter{
-  index: number
-  shape: number[]
-  strides: number[]
-  data: ArrayLike<number>
+export class NDIter {
+  index: number = 0;
+  shape: number[];
+  strides: number[];
+  data: ArrayLike<number>;
 
-  [Symbol.iterator](){ return this }
-
-  constructor(x:NDArray | any[]) {
-    const ar =  array(x)
-    this.shape = ar.shape
-    this.strides = ar.strides
-    this.data = ar.data
-    this.index = 0
+  [Symbol.iterator]() {
+    return this;
   }
 
+  constructor(x: NDArray | ArrayLike<any>) {
+    const ar = array(x);
+    this.shape = ar.shape;
+    this.strides = ar.strides;
+    this.data = ar.data;
+  }
   get coords() {
-    return indexToCoords(this.index, this.shape)
+    return indexToCoords(this.index, this.shape);
   }
-
   get pos() {
-    return coordsToPos(this.coords, this.strides)
+    return coordsToPos(this.coords, this.strides);
   }
   get length() {
-    return this.shape.reduce((x,y)=>x*y,1)
+    return this.shape.reduce((x, y) => x * y, 1);
   }
-
   get value() {
-    return this.data[this.pos]
+    return this.data[this.pos];
   }
-
+  done() {
+    return this.length <= this.index;
+  }
   next() {
     if (this.length <= this.index)
       return {
-        done: true,
-        value: undefined
-      }
-    
-    return {
-      done:false,
+        done: true as const,
+        value: undefined,
+      };
+
+    const result = {
+      done: false as const,
       value: this.pos,
-    }
+    };
+    ++this.index;
+    return result;
   }
 }
